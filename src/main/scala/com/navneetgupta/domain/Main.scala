@@ -3,23 +3,24 @@ package com.navneetgupta.domain
 
 import cats.Monad
 import cats.implicits._
-import cats.effect.{ExitCode, IO, IOApp}
 import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
+import zio._
+import zio.interop.catz._
 
-object Main extends IOApp {
-  implicit val ConsoleIO = new Common.Console[IO] {
-    def putStrLn(line: String): IO[Unit] = IO(println(s"$line \n"))
+object Main extends App {
+  type Task[A] = IO[Throwable, A]
 
-    def readLn(): IO[String] = IO(scala.io.StdIn.readLine)
+  implicit val ConsoleIO = new Common.Console[Task] {
+    def putStrLn(line: String): Task[Unit] = IO(println(s"$line \n"))
+
+    def readLn(): Task[String] = IO(scala.io.StdIn.readLine)
   }
-  implicit val RandomGeneratorIO = new RandomGenerator[IO] {
-    override def getNextLong: IO[Long] = IO.pure(scala.util.Random.nextLong())
+
+  implicit val RandomGeneratorIO = new RandomGenerator[Task] {
+    override def getNextLong: Task[Long] = IO(Math.abs(scala.util.Random.nextLong()))
   }
 
-  override def run(args: List[String]): IO[ExitCode] = for {
-    _ <- Programs.program[IO]
-  } yield ExitCode.Success
-  //    Programs.program[IO] *> IO(ExitCode.Success)
+  override def run(args: List[String]) =  Programs.program.fold(_ => 1, _ => 0)
 }
 
 object Programs {

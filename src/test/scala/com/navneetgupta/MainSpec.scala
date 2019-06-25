@@ -1,7 +1,6 @@
 package com.navneetgupta
 
 import cats.Monad
-import cats.effect.IO
 import com.navneetgupta.domain.{Common, Programs, RandomGenerator}
 import org.scalatest.{FunSpecLike, Matchers}
 

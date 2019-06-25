@@ -1,25 +1,31 @@
 package com.navneetgupta
 
-import cats.effect.IO
 import com.navneetgupta.domain._
 import org.scalatest.{Matchers, Outcome, fixture}
+import zio.{DefaultRuntime, IO}
+import zio.interop.catz._
 
 import scala.util.Random
 
 
 class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
-  implicit val RandomGeneratorIO = new RandomGenerator[IO] {
-    def getNextLong: IO[Long] = IO.pure(scala.util.Random.nextLong())
-  }
-  override type FixtureParam = TestSetup[IO]
 
-  override def withFixture(test: OneArgTest): Outcome = test(new TestSetup[IO]())
+  type Task[A] = IO[Throwable, A]
+
+  implicit val RandomGeneratorIO = new RandomGenerator[Task] {
+    def getNextLong: Task[Long] = IO(scala.util.Random.nextLong())
+  }
+  implicit val runtime = new DefaultRuntime {}
+
+  override type FixtureParam = TestSetup[Task]
+
+  override def withFixture(test: OneArgTest): Outcome = test(new TestSetup[Task]())
 
 
   describe("CardServices.CreateCard") {
     it("should be able to create card") { fixture =>
       val createCardResult = fixture.cardServices.createCard(None)
-      val oysterCard = createCardResult.unsafeRunSync()
+      val oysterCard = runtime.unsafeRun(createCardResult)
       oysterCard.balance shouldBe 0.0D
       oysterCard.lastBarrier shouldBe None
     }
@@ -34,7 +40,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Right(30.0D)
+      runtime.unsafeRun(getBalance) shouldBe Right(30.0D)
     }
 
     it("should fail to add balance to Invalid card") { fixture =>
@@ -43,7 +49,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.updateBalance(35.0D, invalidCardNumber)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Left(CardDoesNotExistError)
+      runtime.unsafeRun(getBalance) shouldBe Left(CardDoesNotExistError)
     }
 
   }
@@ -57,7 +63,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Right(30.0D)
+      runtime.unsafeRun(getBalance) shouldBe Right(30.0D)
     }
 
     it("should fail to add balance to Invalid card") { fixture =>
@@ -66,7 +72,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.updateBalance(35.0D, invalidCardNumber)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Left(CardDoesNotExistError)
+      runtime.unsafeRun(getBalance) shouldBe Left(CardDoesNotExistError)
     }
 
     it("should fail to get balance for an invalid card ") { fixture =>
@@ -75,7 +81,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(invalidCardNumber)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Left(CardDoesNotExistError)
+      runtime.unsafeRun(getBalance) shouldBe Left(CardDoesNotExistError)
     }
   }
 
@@ -89,7 +95,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Right(0.0D)
+      runtime.unsafeRun(getBalance) shouldBe Right(0.0D)
     }
 
     it("should not allow bus journey with Invalid Card") { fixture =>
@@ -99,7 +105,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", BusJourney, Direction.CHECK_IN), 233)
       } yield journey
 
-      createJourney.unsafeRunSync() shouldBe Left(CardDoesNotExistError)
+      runtime.unsafeRun(createJourney) shouldBe Left(CardDoesNotExistError)
     }
 
     it("should not allow bus journey with card Balance < 1.8D") { fixture =>
@@ -109,7 +115,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", BusJourney, Direction.CHECK_IN), card.number)
       } yield journey
 
-      createJourney.unsafeRunSync() shouldBe Left(MinBalanceError)
+      runtime.unsafeRun(createJourney) shouldBe Left(MinBalanceError)
     }
 
     it("should allow tube journey with card Balance >= 3.2D") { fixture =>
@@ -120,7 +126,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Right(0.0D)
+      runtime.unsafeRun(getBalance) shouldBe Right(0.0D)
     }
 
     it("should not allow tube journey with Invalid Card") { fixture =>
@@ -130,7 +136,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), 233)
       } yield journey
 
-      createJourney.unsafeRunSync() shouldBe Left(CardDoesNotExistError)
+      runtime.unsafeRun(createJourney) shouldBe Left(CardDoesNotExistError)
     }
 
     it("should not allow tube journey with card Balance < 3.2D") { fixture =>
@@ -140,7 +146,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
       } yield journey
 
-      createJourney.unsafeRunSync() shouldBe Left(MinBalanceError)
+      runtime.unsafeRun(createJourney) shouldBe Left(MinBalanceError)
     }
 
     it("should dedcut maxBalance in case used forgots to checkout") { fixture =>
@@ -151,7 +157,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      getBalance.unsafeRunSync() shouldBe Right(26.8D)
+      runtime.unsafeRun(getBalance) shouldBe Right(26.8D)
     }
   }
 
@@ -186,7 +192,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
-      completedJourney.unsafeRunSync() shouldBe Right(23.7D)
+      runtime.unsafeRun(completedJourney) shouldBe Right(23.7D)
     }
   }
 }
