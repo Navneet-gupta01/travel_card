@@ -28,6 +28,8 @@ libraryDependencies ++= {
     "org.scalatest"   %% "scalatest"                % "3.0.5" % "test",
     "org.typelevel"   %% "cats-core"                % CatVersion,
     "org.typelevel"   %% "kittens"                  % "1.2.0",
-    "org.typelevel"   %% "cats-effect"              % "1.3.1"
+    "org.typelevel"   %% "cats-effect"              % "1.3.1",
+    "dev.zio"         %% "zio"                      % "1.0.0-RC8-12",
+    "dev.zio"         %% "zio-interop-cats"         % "1.0.0-RC8-12"
   )
 }

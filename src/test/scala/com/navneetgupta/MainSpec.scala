@@ -5,7 +5,7 @@ import cats.effect.IO
 import com.navneetgupta.domain.{Common, Programs, RandomGenerator}
 import org.scalatest.{FunSpecLike, Matchers}
 
-class MainSpec extends TestSetup with FunSpecLike with Matchers {
+class MainSpec extends FunSpecLike with Matchers {
 
   case class TestData(input: List[String], output: List[String], nums: List[Long]) {
     def putStrLn(line: String): (TestData, Unit) =
