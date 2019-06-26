@@ -1,6 +1,5 @@
 package com.navneetgupta.domain
 
-
 import cats.Monad
 import cats.implicits._
 import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
@@ -12,9 +11,9 @@ object Main extends App {
   type Task[A] = IO[Throwable, A]
 
   implicit val ConsoleIO = new Common.Console[Task] {
-    def putStrLn(line: String): Task[Unit] = IO(println(s"$line \n"))
+    def putStrLn(line: String): Task[Unit] = ZIO.effectTotal(println(s"$line \n"))
 
-    def getStrLn(): Task[String] = IO(scala.io.StdIn.readLine)
+    def getStrLn(): Task[String] = ZIO.effect(scala.io.StdIn.readLine)
   }
 
   implicit val RandomGeneratorIO = new RandomGenerator[Task] {
@@ -25,8 +24,8 @@ object Main extends App {
 }
 
 object Programs {
-  import Common._
 
+  import Common._
 
   val inputs =
     """
