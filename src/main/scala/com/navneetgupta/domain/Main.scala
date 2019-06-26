@@ -8,6 +8,7 @@ import zio._
 import zio.interop.catz._
 
 object Main extends App {
+
   type Task[A] = IO[Throwable, A]
 
   implicit val ConsoleIO = new Common.Console[Task] {
@@ -39,8 +40,7 @@ Please select Options from below Menu
     """.stripMargin
 
   def createCardOption[F[_]: Common.Console: Monad ](cardServices: CardServices[F]): F[Unit] = for {
-    _ <- putStrLn("Please enter the amount default[0]")
-    amount <- getStrLn()
+    amount <- putStrLn("Please enter the amount default[0]") *> getStrLn()
     amountValidate <- Validation.validateDouble(amount).pure[F]
     card <- cardServices.createCard(amountValidate)
     _ <- putStrLn(s"Card Created Successfully, Your Card Number is: ${card.number} and balance is: ${card.balance}")
@@ -48,8 +48,7 @@ Please select Options from below Menu
 
   def getBalanceOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      _ <- putStrLn("Please enter the card Number")
-      cardNumber <- getStrLn()
+      cardNumber <- putStrLn("Please enter the card Number") *> getStrLn()
       _ <- Validation.validateLong(cardNumber).fold(
         putStrLn("Invalid Card Number."))(number =>
         cardServices.getBalance(number).flatMap(x => {
@@ -62,10 +61,8 @@ Please select Options from below Menu
 
   def rechargeCardOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      _ <- putStrLn("Please enter the card Number")
-      cardNumber <- getStrLn()
-      _ <- putStrLn("Please Enter amount to rcharge the card")
-      amount <- getStrLn()
+      cardNumber <- putStrLn("Please enter the card Number") *> getStrLn()
+      amount <- putStrLn("Please Enter amount to rcharge the card") *> getStrLn()
       _ <- Validation.validateTuple2((cardNumber, amount)).fold(
         putStrLn("Invalid Card Number."))(input =>
         cardServices.updateBalance(input._2, input._1).flatMap(x => {
@@ -78,12 +75,9 @@ Please select Options from below Menu
 
   def processBusJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      _ <- putStrLn("Please Enter the stationCode")
-      stationCode <- getStrLn()
-      _ <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
-      direction <- getStrLn()
-      _ <- putStrLn("Please Enter Card Number")
-      card <- getStrLn()
+      stationCode <-  putStrLn("Please Enter the stationCode") *> getStrLn()
+      direction <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)") *> getStrLn()
+      card <- putStrLn("Please Enter Card Number") *> getStrLn()
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, BusJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -96,12 +90,9 @@ Please select Options from below Menu
 
   def processTubeJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      _ <- putStrLn("Please Enter the stationCode")
-      stationCode <- getStrLn()
-      _ <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
-      direction <- getStrLn()
-      _ <- putStrLn("Please Enter Card Number")
-      card <- getStrLn()
+      stationCode <- putStrLn("Please Enter the stationCode") *> getStrLn()
+      direction <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)") *> getStrLn()
+      card <- putStrLn("Please Enter Card Number") *> getStrLn()
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, TubeJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -113,15 +104,12 @@ Please select Options from below Menu
     } yield ()
 
 
-  def invalidOption[F[_]: Common.Console: Monad]: F[Unit] =
-    for {
-      _ <- putStrLn("Invalid Option selected")
-    } yield ()
+  def invalidOption[F[_]: Common.Console: Monad]: F[Unit] = putStrLn("Invalid Option selected")
+
 
   def loop[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      _ <- putStrLn(inputs)
-      selectedOption <- getStrLn()
+      selectedOption <- putStrLn(inputs) *> getStrLn()
       resp <- Validation.validateLong(selectedOption).fold({
         loop[F](cardServices)
       })(option => {
@@ -135,7 +123,7 @@ Please select Options from below Menu
 
   def processOption[F[_]: Common.Console: Monad](option: Long, cardServices: CardServices[F]): F[Unit] = {
     option match {
-      case 1 =>createCardOption(cardServices)
+      case 1 => createCardOption(cardServices)
       case 2 => rechargeCardOption(cardServices)
       case 3 => getBalanceOption(cardServices)
       case 4 => processBusJourneyOption(cardServices)
