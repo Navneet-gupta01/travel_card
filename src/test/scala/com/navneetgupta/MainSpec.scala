@@ -10,7 +10,7 @@ class MainSpec extends FunSpecLike with Matchers {
     def putStrLn(line: String): (TestData, Unit) =
       (copy(output = line :: output), Unit)
 
-    def readLn(): (TestData, String) =
+    def getStrLn(): (TestData, String) =
       (copy(input = input.drop(1)), input.head)
 
     def getNextLong: (TestData, Long) =
@@ -39,7 +39,7 @@ class MainSpec extends FunSpecLike with Matchers {
     implicit val ConsoleTestIO = new Common.Console[TestIO] {
       def putStrLn(line: String): TestIO[Unit] = TestIO(t => t.putStrLn(line))
 
-      def readLn(): TestIO[String] = TestIO(t => t.readLn())
+      def getStrLn(): TestIO[String] = TestIO(t => t.getStrLn())
     }
 
     implicit val RandomGeneratorIO = new RandomGenerator[TestIO] {

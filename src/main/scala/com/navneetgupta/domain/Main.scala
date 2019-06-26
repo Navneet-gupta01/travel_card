@@ -13,7 +13,7 @@ object Main extends App {
   implicit val ConsoleIO = new Common.Console[Task] {
     def putStrLn(line: String): Task[Unit] = IO(println(s"$line \n"))
 
-    def readLn(): Task[String] = IO(scala.io.StdIn.readLine)
+    def getStrLn(): Task[String] = IO(scala.io.StdIn.readLine)
   }
 
   implicit val RandomGeneratorIO = new RandomGenerator[Task] {
@@ -40,7 +40,7 @@ Please select Options from below Menu
 
   def createCardOption[F[_]: Common.Console: Monad ](cardServices: CardServices[F]): F[Unit] = for {
     _ <- putStrLn("Please enter the amount default[0]")
-    amount <- readLn()
+    amount <- getStrLn()
     amountValidate <- Validation.validateDouble(amount).pure[F]
     card <- cardServices.createCard(amountValidate)
     _ <- putStrLn(s"Card Created Successfully, Your Card Number is: ${card.number} and balance is: ${card.balance}")
@@ -49,7 +49,7 @@ Please select Options from below Menu
   def getBalanceOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       _ <- putStrLn("Please enter the card Number")
-      cardNumber <- readLn()
+      cardNumber <- getStrLn()
       _ <- Validation.validateLong(cardNumber).fold(
         putStrLn("Invalid Card Number."))(number =>
         cardServices.getBalance(number).flatMap(x => {
@@ -63,9 +63,9 @@ Please select Options from below Menu
   def rechargeCardOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       _ <- putStrLn("Please enter the card Number")
-      cardNumber <- readLn()
+      cardNumber <- getStrLn()
       _ <- putStrLn("Please Enter amount to rcharge the card")
-      amount <- readLn()
+      amount <- getStrLn()
       _ <- Validation.validateTuple2((cardNumber, amount)).fold(
         putStrLn("Invalid Card Number."))(input =>
         cardServices.updateBalance(input._2, input._1).flatMap(x => {
@@ -79,11 +79,11 @@ Please select Options from below Menu
   def processBusJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       _ <- putStrLn("Please Enter the stationCode")
-      stationCode <- readLn()
+      stationCode <- getStrLn()
       _ <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
-      direction <- readLn()
+      direction <- getStrLn()
       _ <- putStrLn("Please Enter Card Number")
-      card <- readLn()
+      card <- getStrLn()
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, BusJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -97,11 +97,11 @@ Please select Options from below Menu
   def processTubeJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       _ <- putStrLn("Please Enter the stationCode")
-      stationCode <- readLn()
+      stationCode <- getStrLn()
       _ <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
-      direction <- readLn()
+      direction <- getStrLn()
       _ <- putStrLn("Please Enter Card Number")
-      card <- readLn()
+      card <- getStrLn()
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, TubeJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -121,7 +121,7 @@ Please select Options from below Menu
   def loop[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       _ <- putStrLn(inputs)
-      selectedOption <- readLn()
+      selectedOption <- getStrLn()
       resp <- Validation.validateLong(selectedOption).fold({
         loop[F](cardServices)
       })(option => {

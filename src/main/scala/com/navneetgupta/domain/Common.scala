@@ -5,7 +5,7 @@ object Common {
   trait Console[F[_]] {
     def putStrLn(str: String): F[Unit]
 
-    def readLn(): F[String]
+    def getStrLn(): F[String]
   }
 
   object Console {
@@ -14,6 +14,6 @@ object Common {
 
   def putStrLn[F[_] : Console](line: String): F[Unit] = Console[F].putStrLn(line)
 
-  def readLn[F[_] : Console](): F[String] = Console[F].readLn()
+  def getStrLn[F[_] : Console](): F[String] = Console[F].getStrLn()
 
 }
