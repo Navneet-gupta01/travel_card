@@ -39,7 +39,7 @@ Please select Options from below Menu
     """.stripMargin
 
   def createCardOption[F[_]: Common.Console: Monad ](cardServices: CardServices[F]): F[Unit] = for {
-    amount <- putStrLn("Please enter the amount default[0]") *> getStrLn()
+    amount <- readData("Please enter the amount default[0]")
     amountValidate <- Validation.validateDouble(amount).pure[F]
     card <- cardServices.createCard(amountValidate)
     _ <- putStrLn(s"Card Created Successfully, Your Card Number is: ${card.number} and balance is: ${card.balance}")
@@ -47,7 +47,7 @@ Please select Options from below Menu
 
   def getBalanceOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      cardNumber <- putStrLn("Please enter the card Number") *> getStrLn()
+      cardNumber <- readData("Please enter the card Number")
       _ <- Validation.validateLong(cardNumber).fold(
         putStrLn("Invalid Card Number."))(number =>
         cardServices.getBalance(number).flatMap(x => {
@@ -60,8 +60,8 @@ Please select Options from below Menu
 
   def rechargeCardOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      cardNumber <- putStrLn("Please enter the card Number") *> getStrLn()
-      amount <- putStrLn("Please Enter amount to rcharge the card") *> getStrLn()
+      cardNumber <- readData("Please enter the card Number")
+      amount <- readData("Please Enter amount to rcharge the card")
       _ <- Validation.validateTuple2((cardNumber, amount)).fold(
         putStrLn("Invalid Card Number."))(input =>
         cardServices.updateBalance(input._2, input._1).flatMap(x => {
@@ -74,9 +74,9 @@ Please select Options from below Menu
 
   def processBusJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      stationCode <-  putStrLn("Please Enter the stationCode") *> getStrLn()
-      direction <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)") *> getStrLn()
-      card <- putStrLn("Please Enter Card Number") *> getStrLn()
+      stationCode <-  readData("Please Enter the stationCode")
+      direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
+      card <- readData("Please Enter Card Number")
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, BusJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -89,9 +89,9 @@ Please select Options from below Menu
 
   def processTubeJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      stationCode <- putStrLn("Please Enter the stationCode") *> getStrLn()
-      direction <- putStrLn("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)") *> getStrLn()
-      card <- putStrLn("Please Enter Card Number") *> getStrLn()
+      stationCode <- readData("Please Enter the stationCode")
+      direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
+      card <- readData("Please Enter Card Number")
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, TubeJourney, input._2), input._1).flatMap(x => {
           x match {
@@ -108,7 +108,7 @@ Please select Options from below Menu
 
   def loop[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      selectedOption <- putStrLn(inputs) *> getStrLn()
+      selectedOption <- readData(inputs)
       resp <- Validation.validateLong(selectedOption).fold({
         loop[F](cardServices)
       })(option => {
@@ -130,6 +130,8 @@ Please select Options from below Menu
     }
   }
 
+  private def readData[F[_]: Common.Console: Monad](msg: String): F[String] = putStrLn(msg) *> getStrLn()
+
   object Validation {
     def getDirection(str: String): Option[Direction.Value] = str match {
       case "IN" => Direction.CHECK_IN.some
@@ -143,6 +145,7 @@ Please select Options from below Menu
       (scala.util.Try(tuple._3.toLong).toOption, getDirection(tuple._2)).bisequence.map(a => (a._1, a._2, tuple._1))
     }
   }
+
 
 
   def program[F[_]:Common.Console: Monad: RandomGenerator]: F[Unit] =
