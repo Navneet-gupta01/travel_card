@@ -14,7 +14,7 @@ class MainSpec extends FunSpecLike with Matchers {
       (copy(input = input.drop(1)), input.head)
 
     def getNextLong: (TestData, Long) =
-      (copy(nums = nums.drop(1)), nums.head)
+      (copy(), nums.head) // Generating same number each time since. Valid for one Card number
 
     def showResults = output.reverse.mkString("\n")
   }
@@ -89,7 +89,7 @@ class MainSpec extends FunSpecLike with Matchers {
             Invalid Option Selected. Exiting Application !!""".stripMargin
 
       runTest(testData.copy(
-        input = List("1", "12", "2", testData.nums.head.toString, "23")))
+        input = List("1", "12", "2", testData.nums.head.toString, "23", "43")))
         .replace(" ", "") shouldBe resp.replace(" ", "")
     }
 //    it ("in creating the card and successfully exiting the application") {
