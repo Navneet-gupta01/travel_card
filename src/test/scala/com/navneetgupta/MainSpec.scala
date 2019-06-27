@@ -61,12 +61,10 @@ class MainSpec extends FunSpecLike with Matchers {
     output = Nil,
     nums = 1 :: Nil
   )
-  def runTest = programTest.eval(testData).showResults
+  def runTest(testData: TestData) = programTest.eval(testData).showResults
 
-
-  //   should work fine except the card number generated in random
   describe("Program should work") {
-    it ("should work fine") {
+    it ("in creating the card and successfully exiting the application") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}
@@ -75,7 +73,39 @@ class MainSpec extends FunSpecLike with Matchers {
             ${Programs.inputs}
             Invalid Option Selected. Exiting Application !!""".stripMargin
 
-      runTest.replace(" ", "") shouldBe resp.replace(" ", "")
+      runTest(testData).replace(" ", "") shouldBe resp.replace(" ", "")
     }
+    it ("in creating the card, recharge the card and successfully exiting the application") {
+      val resp =
+        s"""Starting The Program
+            ${Programs.inputs}
+            Please enter the amount default[0]
+            Card Created Successfully, Your Card Number is: ${testData.nums.head} and balance is: 12.0
+            ${Programs.inputs}
+            Please enter the card Number
+            Please Enter amount to rcharge the card
+            Your Updated Card Balance is 35.0
+            ${Programs.inputs}
+            Invalid Option Selected. Exiting Application !!""".stripMargin
+
+      runTest(testData.copy(
+        input = List("1", "12", "2", testData.nums.head.toString, "23")))
+        .replace(" ", "") shouldBe resp.replace(" ", "")
+    }
+//    it ("in creating the card and successfully exiting the application") {
+//      val resp =
+//        s"""Starting The Program
+//            ${Programs.inputs}
+//            Please enter the amount default[0]
+//            Card Created Successfully, Your Card Number is: ${testData.nums.head} and balance is: 12.0
+//            ${Programs.inputs}
+//            Please enter the card Number
+//            Please Enter amount to rcharge the card
+//            Your Updated Card Balance is 35.0
+//            ${Programs.inputs}
+//            Invalid Option Selected. Exiting Application !!""".stripMargin
+//
+//      runTest(testData).replace(" ", "") shouldBe resp.replace(" ", "")
+//    }
   }
 }
