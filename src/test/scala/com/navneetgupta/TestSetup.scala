@@ -9,7 +9,6 @@ trait TestSetup {
     val cardRepo : CardsRepository[F] = InMemoryCardsRepositoryInterpreter[F]
     val zonesRepo: ZonesRepository[F] = InMemoryZonesRepositoryInterpreter[F]
 
-    val zoneServices: ZoneServices[F] = ZoneServices[F](zonesRepo)
-    val cardServices: CardServices[F] = CardServices[F](cardRepo, zoneServices)
+    val cardServices: CardServices[F] = CardServices[F](cardRepo, zonesRepo)
   }
 }

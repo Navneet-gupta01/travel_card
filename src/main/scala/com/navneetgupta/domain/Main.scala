@@ -153,8 +153,7 @@ Please select Options from below Menu
       _ <- putStrLn("Starting The Program")
       cardRepositories = InMemoryCardsRepositoryInterpreter[F]
       zoneRepositories = InMemoryZonesRepositoryInterpreter[F]
-      zonesServices = ZoneServices[F](zoneRepositories)
-      cardServices = CardServices[F](cardRepositories, zonesServices)
+      cardServices = CardServices[F](cardRepositories, zoneRepositories)
       resp <- loop[F](cardServices)
     } yield resp
 }
