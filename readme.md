@@ -1,5 +1,7 @@
 # Oyster Application
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/63cecc982ab740059f221cf84c2d0114)](https://app.codacy.com/app/Navneet-gupta01/travel_card?utm_source=github.com&utm_medium=referral&utm_content=Navneet-gupta01/travel_card&utm_campaign=Badge_Grade_Dashboard)
+
 ## To Start the console Application
 ```
 sbt run
