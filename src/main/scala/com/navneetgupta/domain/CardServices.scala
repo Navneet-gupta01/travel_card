@@ -8,7 +8,7 @@ import cats.data.EitherT
 import cats.implicits._
 
 class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
-                                          zoneServices: ZoneServices[F]) {
+                                          zonesRepository: ZonesRepository[F]) {
 
   import CardServices._
 
@@ -124,10 +124,9 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
 
   private def calculateMinTubeFare(to: Barrier, from: Barrier)(implicit M: Monad[F]): F[Barrier] = {
     for {
-      fromZones <- zoneServices.getZoneByStationCode(from.stationCode)
-      toZones <- zoneServices.getZoneByStationCode(to.stationCode)
+      fromZones <- zonesRepository.getZonesByStationCode(from.stationCode)
+      toZones <- zonesRepository.getZonesByStationCode(to.stationCode)
     } yield {
-      //      val minZonesCrossed = zoneServices.getMinNumberOfZonesCrossed(fromZones, toZones)
       // refund the excess fare charged
       val minFare = minFareCalc(fromZones,toZones)
       val barrierC = to.copy(fare = minFare - MAX_TUBE_JOURNEY_FARE)
@@ -162,5 +161,5 @@ object CardServices {
 
 
   def apply[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
-                                   zoneServices: ZoneServices[F]): CardServices[F] = new CardServices(cardsRepository, zoneServices)
+                                   zonesRepository: ZonesRepository[F]): CardServices[F] = new CardServices(cardsRepository, zonesRepository)
 }
