@@ -6,11 +6,11 @@ import java.util.Date
 import cats.{Monad}
 import cats.data.EitherT
 import cats.implicits._
+import CardServices._
 
 class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
                                           zonesRepository: ZonesRepository[F]) {
 
-  import CardServices._
 
   def createCard(amount: Option[Double]) = cardsRepository.createCard(amount)
 

@@ -5,6 +5,8 @@ import cats.implicits._
 import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
 import zio._
 import zio.interop.catz._
+import Common._
+
 
 object Main extends App {
 
@@ -24,8 +26,6 @@ object Main extends App {
 }
 
 object Programs {
-
-  import Common._
 
   val inputs =
     """
