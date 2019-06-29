@@ -11,7 +11,7 @@ class MainSpec extends FunSpecLike with Matchers {
       (copy(output = line :: output), Unit)
 
     def getStrLn(): (TestData, String) =
-      (copy(input = input.drop(1)), input.head)
+      (copy(input = input.tail), input.head)
 
     def getNextLong: (TestData, Long) =
       (copy(), nums.head) // Generating same number each time since. Valid for one Card number
