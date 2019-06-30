@@ -1,8 +1,11 @@
 package com.navneetgupta
 
+import java.util.Date
+
 import cats.Monad
 import com.navneetgupta.domain.{Common, Programs, RandomGenerator}
 import org.scalatest.{FunSpecLike, Matchers}
+import sun.security.provider.Sun
 
 class MainSpec extends FunSpecLike with Matchers {
 
@@ -110,6 +113,26 @@ class MainSpec extends FunSpecLike with Matchers {
 
       runTest(testData.copy(
         input = List("1", "12", "2", testData.nums.head.toString, "23", "3", testData.nums.head.toString, "43")))
+        .replace(" ", "") shouldBe resp.replace(" ", "")
+    }
+
+    // NOTE: Few time this test might fail due to randomness of Date used to match in response.
+    it ("in creating card wiht appropate balance and taking a trip") {
+      val resp =
+        s"""Starting The Program
+            ${Programs.inputs}
+            Please enter the amount default[0]
+            Card Created Successfully, Your Card Number is: ${testData.nums.head} and balance is: 12.0
+            ${Programs.inputs}
+            Please Enter the stationCode
+            Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)
+            Please Enter Card Number
+            You are allowed to crosss through: Barrier(HOL,BusJourney,CHECK_IN,${new Date()},1.8)
+            ${Programs.inputs}
+            Invalid Option Selected. Exiting Application !!""".stripMargin
+
+      runTest(testData.copy(
+        input = List("1", "12", "4", "HOL", "IN", testData.nums.head.toString, "23")))
         .replace(" ", "") shouldBe resp.replace(" ", "")
     }
   }
