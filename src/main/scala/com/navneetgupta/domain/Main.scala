@@ -80,7 +80,7 @@ Please select Options from below Menu
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, BusJourney, input._2), input._1).flatMap(x => {
           x match {
-            case Right(crossedBarrier) => putStrLn(s"You are allowed to crosss through: ${crossedBarrier}")
+            case Right(crossedBarrier) => putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
             case Left(error) => putStrLn(s"Unable To Create Journey error: $error")
           }
         })
@@ -95,7 +95,7 @@ Please select Options from below Menu
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
         cardServices.createJourney(Barrier(input._3, TubeJourney, input._2), input._1).flatMap(x => {
           x match {
-            case Right(crossedBarrier) => putStrLn(s"You are allowed to crosss through: ${crossedBarrier}")
+            case Right(crossedBarrier) => putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
             case Left(error) => putStrLn(s"Unable To Create Journey error: $error")
           }
         })
