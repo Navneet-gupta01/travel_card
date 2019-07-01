@@ -117,7 +117,7 @@ class MainSpec extends FunSpecLike with Matchers {
     }
 
     // NOTE: Few time this test might fail due to randomness of Date used to match in response.
-    it ("in creating card wiht appropate balance and taking a trip") {
+    it ("in creating card with appropriate balance and taking a trip") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}
@@ -125,9 +125,9 @@ class MainSpec extends FunSpecLike with Matchers {
             Card Created Successfully, Your Card Number is: ${testData.nums.head} and balance is: 12.0
             ${Programs.inputs}
             Please Enter the stationCode
-            Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)
+            Please Enter the Direction For Inward Journey(IN) / for OutWard Journey(OUT)
             Please Enter Card Number
-            You are allowed to crosss through: Barrier(HOL,BusJourney,CHECK_IN,${new Date()},1.8)
+            You are allowed to cross through: Barrier(HOL,BusJourney,CHECK_IN,${new Date()},1.8)
             ${Programs.inputs}
             Invalid Option Selected. Exiting Application !!""".stripMargin
 

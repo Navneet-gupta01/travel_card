@@ -45,7 +45,7 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
         case BusJourney  => busJourney(barrier, card)
         case TubeJourney => tubeJourney(barrier, card)
       }
-      updateCard <- EitherT.fromOptionF[F, ValidationError, OysterCard](
+      _ <- EitherT.fromOptionF[F, ValidationError, OysterCard](
         cardsRepository.updateCard(
           card.copy(balance = (card.balance - crossedBarrier.fare),
             lastBarrier = crossedBarrier.copy(crossedAt = new Date()).some,
@@ -53,8 +53,6 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
         CreateJourneyError)
     } yield crossedBarrier).value
   }
-
-
 
   private def tubeJourney(barrier: Barrier, card: OysterCard)(
     implicit M: Monad[F]): EitherT[F, ValidationError, Barrier] =
@@ -118,7 +116,7 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
         // already deducted while checkIn donot deduct again
         Either.right[ValidationError, Barrier](barrier).pure[F]
       case _ =>
-        // In any other case dedcut the fare.
+        // In any other case deduct the fare.
         Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_BUS_JOURNEY_FARE)).pure[F]
     }
 
