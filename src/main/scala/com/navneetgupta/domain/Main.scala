@@ -22,7 +22,7 @@ object Main extends App {
     override def getNextLong: Task[Long] = IO(Math.abs(scala.util.Random.nextLong()))
   }
 
-  override def run(args: List[String]) =  Programs.program.fold(_ => 1, _ => 0)
+  override def run(args: List[String]) = Programs.program.fold(_ => 1, _ => 0)
 }
 
 object Programs {
@@ -38,14 +38,14 @@ Please select Options from below Menu
   [6] Exit
     """.stripMargin
 
-  def createCardOption[F[_]: Common.Console: Monad ](cardServices: CardServices[F]): F[Unit] = for {
+  def createCardOption[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] = for {
     amount <- readData("Please enter the amount default[0]")
     amountValidate <- Validation.validateDouble(amount).pure[F]
     card <- cardServices.createCard(amountValidate)
     _ <- putStrLn(s"Card Created Successfully, Your Card Number is: ${card.number} and balance is: ${card.balance}")
   } yield ()
 
-  def getBalanceOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
+  def getBalanceOption[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       cardNumber <- readData("Please enter the card Number")
       _ <- Validation.validateLong(cardNumber).fold(
@@ -58,7 +58,7 @@ Please select Options from below Menu
         }))
     } yield ()
 
-  def rechargeCardOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
+  def rechargeCardOption[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       cardNumber <- readData("Please enter the card Number")
       amount <- readData("Please Enter amount to rcharge the card")
@@ -72,9 +72,9 @@ Please select Options from below Menu
         }))
     } yield ()
 
-  def processBusJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
+  def processBusJourneyOption[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] =
     for {
-      stationCode <-  readData("Please Enter the stationCode")
+      stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
       card <- readData("Please Enter Card Number")
       _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
@@ -87,7 +87,7 @@ Please select Options from below Menu
       })
     } yield ()
 
-  def processTubeJourneyOption[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
+  def processTubeJourneyOption[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
@@ -103,24 +103,24 @@ Please select Options from below Menu
     } yield ()
 
 
-  def invalidOption[F[_]: Common.Console: Monad]: F[Unit] = putStrLn("Invalid Option selected")
+  def invalidOption[F[_] : Common.Console : Monad]: F[Unit] = putStrLn("Invalid Option selected")
 
 
-  def loop[F[_]: Common.Console: Monad](cardServices: CardServices[F]): F[Unit] =
+  def loop[F[_] : Common.Console : Monad](cardServices: CardServices[F]): F[Unit] =
     for {
       selectedOption <- readData(inputs)
       resp <- Validation.validateLong(selectedOption).fold({
         loop[F](cardServices)
       })(option => {
-        if(option > 0 && option < 6)
-          processOption[F](option,cardServices) *> loop[F](cardServices)
+        if (option > 0 && option < 6)
+          processOption[F](option, cardServices) *> loop[F](cardServices)
         else if (option == 6) putStrLn("Exiting Application !!")
         else putStrLn("Invalid Option Selected. Exiting Application !!")
       })
     } yield ()
 
 
-  def processOption[F[_]: Common.Console: Monad](option: Long, cardServices: CardServices[F]): F[Unit] = {
+  def processOption[F[_] : Common.Console : Monad](option: Long, cardServices: CardServices[F]): F[Unit] = {
     option match {
       case 1 => createCardOption(cardServices)
       case 2 => rechargeCardOption(cardServices)
@@ -130,7 +130,7 @@ Please select Options from below Menu
     }
   }
 
-  private def readData[F[_]: Common.Console: Monad](msg: String): F[String] = putStrLn(msg) *> getStrLn()
+  private def readData[F[_] : Common.Console : Monad](msg: String): F[String] = putStrLn(msg) *> getStrLn()
 
   object Validation {
     def getDirection(str: String): Option[Direction.Value] = str match {
@@ -138,17 +138,20 @@ Please select Options from below Menu
       case "OUT" => Direction.CHECK_OUT.some
       case _ => None
     }
+
     def validateDouble(num: String): Option[Double] = scala.util.Try(num.toDouble).toOption
+
     def validateLong(num: String): Option[Long] = scala.util.Try(num.toLong).toOption
-    def validateTuple2(tuple: (String , String)): Option[(Long, Double)] =  (scala.util.Try(tuple._1.toLong).toOption, scala.util.Try(tuple._2.toDouble).toOption).bisequence
-    def validateTuple3(tuple: (String , String, String)): Option[(Long, Direction.Value, String)] =  {
+
+    def validateTuple2(tuple: (String, String)): Option[(Long, Double)] = (scala.util.Try(tuple._1.toLong).toOption, scala.util.Try(tuple._2.toDouble).toOption).bisequence
+
+    def validateTuple3(tuple: (String, String, String)): Option[(Long, Direction.Value, String)] = {
       (scala.util.Try(tuple._3.toLong).toOption, getDirection(tuple._2)).bisequence.map(a => (a._1, a._2, tuple._1))
     }
   }
 
 
-
-  def program[F[_]:Common.Console: Monad: RandomGenerator]: F[Unit] =
+  def program[F[_] : Common.Console : Monad : RandomGenerator]: F[Unit] =
     for {
       _ <- putStrLn("Starting The Program")
       cardRepositories = InMemoryCardsRepositoryInterpreter[F]

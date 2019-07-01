@@ -49,6 +49,7 @@ class MainSpec extends FunSpecLike with Matchers {
       def getNextLong: TestIO[Long] = TestIO(t => t.getNextLong)
     }
   }
+
   implicit val testIOMonad: Monad[TestIO] = new Monad[TestIO] {
     override def flatMap[A, B](opt: TestIO[A])(fn: A => TestIO[B]): TestIO[B] = opt.flatMap(fn)
 
@@ -57,17 +58,19 @@ class MainSpec extends FunSpecLike with Matchers {
     def tailRecM[A, B](a: A)(fn: A => TestIO[Either[A, B]]): TestIO[B] = ???
 
   }
-  def programTest : TestIO[Unit] = Programs.program[TestIO]
+
+  def programTest: TestIO[Unit] = Programs.program[TestIO]
 
   val testData = TestData(
     input = "1" :: "12" :: "43" :: Nil,
     output = Nil,
     nums = 1 :: Nil
   )
+
   def runTest(testData: TestData) = programTest.eval(testData).showResults
 
   describe("Program should Succeed") {
-    it ("in creating the card and successfully exiting the application") {
+    it("in creating the card and successfully exiting the application") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}
@@ -78,7 +81,7 @@ class MainSpec extends FunSpecLike with Matchers {
 
       runTest(testData).replace(" ", "") shouldBe resp.replace(" ", "")
     }
-    it ("in creating the card, recharge the card and successfully exiting the application") {
+    it("in creating the card, recharge the card and successfully exiting the application") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}
@@ -95,7 +98,7 @@ class MainSpec extends FunSpecLike with Matchers {
         input = List("1", "12", "2", testData.nums.head.toString, "23", "43")))
         .replace(" ", "") shouldBe resp.replace(" ", "")
     }
-    it ("in creating the card, recharge, getting balance and successfully exiting the application") {
+    it("in creating the card, recharge, getting balance and successfully exiting the application") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}
@@ -117,7 +120,7 @@ class MainSpec extends FunSpecLike with Matchers {
     }
 
     // NOTE: Few time this test might fail due to randomness of Date used to match in response.
-    it ("in creating card with appropriate balance and taking a trip") {
+    it("in creating card with appropriate balance and taking a trip") {
       val resp =
         s"""Starting The Program
             ${Programs.inputs}

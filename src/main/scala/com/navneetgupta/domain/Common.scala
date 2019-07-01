@@ -2,6 +2,7 @@ package com.navneetgupta.domain
 
 
 object Common {
+
   trait Console[F[_]] {
     def putStrLn(str: String): F[Unit]
 

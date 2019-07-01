@@ -1,9 +1,8 @@
-package com.navneetgupta.domain
+package com.navneetgupta.oyster
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import cats.data.NonEmptyList
-
 
 sealed trait JourneyType extends Product with Serializable
 
@@ -16,7 +15,7 @@ object Direction extends Enumeration {
   val CHECK_IN, CHECK_OUT = Value
 }
 
-case class Barrier(stationCode: String, journeyType: JourneyType, direction: Direction.Value, crossedAt: Date, fare: Double)
+final case class Barrier(stationCode: String, journeyType: JourneyType, direction: Direction.Value, crossedAt: Date, fare: Double)
 
 object Barrier {
   def apply(stationCode: String, journeyType: JourneyType, direction: Direction.Value, crossedAt: Date): Barrier =
@@ -27,9 +26,16 @@ object Barrier {
 }
 
 //case class Journey(from: Barrier, to: Option[Barrier], date: Date, cost: Double)
-case class OysterCard(number: Long, balance: Double, lastBarrier: Option[Barrier] = None)
+final case class OysterCard[A](number: A, balance: Double, lastBarrier: Option[Barrier] = None) {
+  def update(card: OysterCard[A]): OysterCard[A] =
+    this.copy(
+      number = this.number,
+      balance = card.balance,
+      lastBarrier = card.lastBarrier
+    )
+}
 
-case class Station(stationCode: String, stationName: String, zones: NonEmptyList[Int])
+final case class Station(stationCode: String, stationName: String, zones: NonEmptyList[Int])
 
 sealed trait ValidationError extends Product with Serializable
 

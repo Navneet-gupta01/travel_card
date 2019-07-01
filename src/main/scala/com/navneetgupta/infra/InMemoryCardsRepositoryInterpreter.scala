@@ -7,7 +7,7 @@ import cats.implicits._
 import scala.collection.concurrent.TrieMap
 
 
-class InMemoryCardsRepositoryInterpreter[F[_]: Monad: RandomGenerator] extends CardsRepository[F] {
+class InMemoryCardsRepositoryInterpreter[F[_] : Monad : RandomGenerator] extends CardsRepository[F] {
   private val cache = new TrieMap[Long, OysterCard]
 
   private val defaultAmount = 0.0
@@ -18,7 +18,7 @@ class InMemoryCardsRepositoryInterpreter[F[_]: Monad: RandomGenerator] extends C
     for {
       id <- nextLong()
       cardToSave = OysterCard(id, amount.getOrElse(defaultAmount))
-      _ = cache.put(cardToSave.number,cardToSave)
+      _ = cache.put(cardToSave.number, cardToSave)
     } yield cardToSave
 
   override def getCard(cardNumber: Long): F[Option[OysterCard]] = cache.get(cardNumber).pure[F]
@@ -30,5 +30,5 @@ class InMemoryCardsRepositoryInterpreter[F[_]: Monad: RandomGenerator] extends C
 }
 
 object InMemoryCardsRepositoryInterpreter {
-  def apply[F[_]: Monad: RandomGenerator](): InMemoryCardsRepositoryInterpreter[F] = new InMemoryCardsRepositoryInterpreter[F]()
+  def apply[F[_] : Monad : RandomGenerator](): InMemoryCardsRepositoryInterpreter[F] = new InMemoryCardsRepositoryInterpreter[F]()
 }
