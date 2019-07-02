@@ -5,15 +5,15 @@ import zio.ZIO
 import zio.IO
 
 trait ZonesRepository extends Serializable {
-  val zonesRepository: ZonesRepository.Service
+  val zonesRepository: ZonesRepository.Service[Any]
 }
 
 object ZonesRepository extends Serializable {
-  trait Service extends Serializable {
-    def getZonesByStationCode(code: String): ZIO[Any, Nothing, List[Int]]
+  trait Service[R] extends Serializable {
+    def getZonesByStationCode(code: String): ZIO[R, Nothing, List[Int]]
   }
 
-  final case object InMemoryZonesRepository extends Service {
+  final case object InMemoryZonesRepository extends Service[Any] {
     private val zonesCache: Map[String, Station] = Map(
       "HOL" -> Station("HOL", "Holborn", NonEmptyList(1, Nil)),
       "EAR" -> Station("EAR", "Earl’s Court", NonEmptyList(1, 2 :: Nil)),
