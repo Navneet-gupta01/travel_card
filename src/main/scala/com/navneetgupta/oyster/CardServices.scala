@@ -1,20 +1,25 @@
 package com.navneetgupta.oyster
 
+import java.util.Date
+
 import cats.Monad
 import cats.data.EitherT
 import zio.{TaskR, ZIO}
+import cats.implicits._
 
 final case class CardServices[R <: CardRepository with ZonesRepository]() extends Serializable {
   import CardServices._
 
-  type CardTask[A] = ZIO[R, Any, A]
+  type CardTask[A] = TaskR[R, A]
 
-  def createCard(amount: Option[Double]) = create(amount)
+  def createCard(amount: Option[Double]): CardTask[OysterCard[Long]] = create(amount)
 
-  def updateBalanceService(amountToAdd: Double, cardNumber: Long)(implicit M: Monad[CardTask]) = {
+  def updateBalanceService(amountToAdd: Double, cardNumber: Long)(implicit M: Monad[CardTask]): CardTask[Either[ValidationError,OysterCard[Long]]] = {
     (for {
-      card <- get(cardNumber)
-      updatedCard <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard](
+      card <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
+        get(cardNumber),
+        CardDoesNotExistError)
+      updatedCard <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
         update(cardNumber,
           card.copy(balance = card.balance + amountToAdd)),
         BalanceUpdateError)
@@ -24,22 +29,22 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
   def getBalanceService(cardNumber: Long)(
     implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Double]] =
     (for {
-      cardBalance <- EitherT.fromOptionF[CardTask, ValidationError, Double](
-        cardsRepository.getCard(cardNumber).fmap(_.map(_.balance)),
+      cardBalance <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
+        get(cardNumber),
         CardDoesNotExistError)
-    } yield cardBalance).value
+    } yield cardBalance.balance).value
 
   def createJourneyService(barrier: Barrier, cardNumber: Long)(implicit M: Monad[CardTask]) = {
     (for {
-      card <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard](
+      card <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
         get(cardNumber),
         CardDoesNotExistError)
       crossedBarrier <- barrier.journeyType match {
         case BusJourney => busJourney(barrier, card)
-        case TubeJourney => tubeJourney(barrier, card)
+        case TubeJourney => tubeJourney[Long](barrier, card)
       }
-      _ <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard](
-        cardsRepository.updateCard(
+      _ <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
+        update(cardNumber,
           card.copy(balance = (card.balance - crossedBarrier.fare),
             lastBarrier = crossedBarrier.copy(crossedAt = new Date()).some,
           )),
@@ -47,8 +52,8 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
     } yield crossedBarrier).value
   }
 
-  private def tubeJourney(barrier: Barrier, card: OysterCard)(
-    implicit M: Monad[F]): EitherT[F, ValidationError, Barrier] =
+  private def tubeJourney[A](barrier: Barrier, card: OysterCard[A])(
+    implicit M: Monad[CardTask]): EitherT[CardTask, ValidationError, Barrier] =
     for {
       minBalanceValidation <- EitherT {
         minBalanceValidation(barrier, card)
@@ -58,8 +63,8 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
       }
     } yield updatedBarrierWihtFare
 
-  private def busJourney(barrier: Barrier, card: OysterCard)(
-    implicit M: Monad[F]): EitherT[F, ValidationError, Barrier] =
+  private def busJourney[A](barrier: Barrier, card: OysterCard[A])(
+    implicit M: Monad[CardTask]): EitherT[CardTask, ValidationError, Barrier] =
     for {
       minBalanceValidation <- EitherT {
         minBalanceValidation(barrier, card)
@@ -69,8 +74,8 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
       }
     } yield updatedBarrierWithFare
 
-  private def minBalanceValidation(barrier: Barrier, card: OysterCard)(
-    implicit M: Monad[F]): F[Either[ValidationError, Barrier]] = {
+  private def minBalanceValidation[A](barrier: Barrier, card: OysterCard[A])(
+    implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] = {
     (CardServices.MIN_BALANCE_FOR_CHECK_IN
       .get(barrier.journeyType)
       .filter(_ <= card.balance)
@@ -79,7 +84,7 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
       })(v => {
         Right(barrier)
       }))
-      .pure[F]
+      .pure[CardTask]
   }
 
   // If User is trying to continuously IN multiple time, he should not be charger again.
@@ -88,45 +93,45 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
   }
 
 
-  private def processTubeJourney(
+  private def processTubeJourney[A](
                                   barrier: Barrier,
-                                  card: OysterCard)(implicit M: Monad[F]): F[Either[ValidationError, Barrier]] = {
+                                  card: OysterCard[A])(implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] = {
     card.lastBarrier.fold(
       if (barrier.direction == Direction.CHECK_IN)
-        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[F]
-      else Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[F])(lastBarrier => {
+        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
+      else Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask])(lastBarrier => {
       lastBarrier.journeyType match {
         case BusJourney => if (barrier.direction == Direction.CHECK_IN)
-          Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[F]
+          Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
         else
-          Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[F]
+          Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask]
         case TubeJourney =>
           (lastBarrier.direction, barrier.direction) match {
             case (Direction.CHECK_OUT, Direction.CHECK_OUT) =>
-              Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[F]
+              Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask]
             case (Direction.CHECK_IN, Direction.CHECK_OUT) =>
               calculateMinTubeFare(barrier, lastBarrier).map(Either.right(_))
             case _ =>
-              Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[F]
+              Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
           }
       }
     })
   }
 
-  private def calculateBusFare(barrier: Barrier, card: OysterCard)(implicit M: Monad[F]): F[Either[ValidationError, Barrier]] =
+  private def calculateBusFare[A](barrier: Barrier, card: OysterCard[A])(implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] =
     (barrier.direction, card.lastBarrier) match {
       case (Direction.CHECK_OUT, Some(lastbarrier)) if (lastbarrier.journeyType == BusJourney && lastbarrier.direction == Direction.CHECK_IN) =>
         // already deducted while checkIn donot deduct again
-        Either.right[ValidationError, Barrier](barrier).pure[F]
+        Either.right[ValidationError, Barrier](barrier).pure[CardTask]
       case _ =>
         // In any other case deduct the fare.
-        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_BUS_JOURNEY_FARE)).pure[F]
+        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_BUS_JOURNEY_FARE)).pure[CardTask]
     }
 
-  private def calculateMinTubeFare(to: Barrier, from: Barrier)(implicit M: Monad[F]): F[Barrier] = {
+  private def calculateMinTubeFare(to: Barrier, from: Barrier)(implicit M: Monad[CardTask]): CardTask[Barrier] = {
     for {
-      fromZones <- zonesRepository.getZonesByStationCode(from.stationCode)
-      toZones <- zonesRepository.getZonesByStationCode(to.stationCode)
+      fromZones <- getZonesByStationCode(from.stationCode)
+      toZones <- getZonesByStationCode(to.stationCode)
     } yield {
       // refund the excess fare charged
       val minFare = minFareCalc(fromZones, toZones)
