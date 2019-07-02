@@ -2,7 +2,7 @@ package com.navneetgupta.oyster
 
 import cats.Monad
 import zio.clock.Clock
-import zio.{App, TaskR, ZIO}
+import zio.{App, TaskR, ZIO, IO}
 import zio.console._
 
 object Main extends App {
@@ -34,81 +34,55 @@ Please select Options from below Menu
   } yield ()
 
 
-  def getBalanceOption(implicit M: Monad[CardTask]): CardTask[Unit] =
+  def getBalanceOption: CardTask[Unit] =
     for {
       cardNumber <- readData("Please enter the card Number")
-      _ <- Validation.validateLong(cardNumber).fold(
-        putStrLn("Invalid Card Number."))(number =>
-        cardServices.getBalance(number).flatMap(x => {
-          x match {
-            case Right(balance) => putStrLn(s"Your Card Balance is ${balance}")
-            case Left(_) => putStrLn("Invalid Card Number")
-          }
-        }))
+      cardNumberValidated <- ZIO.fromOption(Validation.validateLong(cardNumber)).mapError(_ => InvalidInputParams("Invalid Card Number"))
+      balance <- cardServices.getBalance(cardNumberValidated)
+      _ <- putStrLn(s"Your Card Balance is $balance")
     } yield ()
 
-  def rechargeCardOption(implicit M: Monad[CardTask]): CardTask[Unit] =
+  def rechargeCardOption: CardTask[Unit] =
     for {
       cardNumber <- readData("Please enter the card Number")
       amount <- readData("Please Enter amount to rcharge the card")
-      _ <- Validation.validateTuple2((cardNumber, amount)).fold(
-        putStrLn("Invalid Card Number."))(input =>
-        cardServices.updateBalance(input._2, input._1).flatMap(x => {
-          x match {
-            case Right(updatedCard) => putStrLn(s"Your Updated Card Balance is ${updatedCard.balance}")
-            case Left(_) => putStrLn("Invalid Card Number")
-          }
-        }))
+      tuple <- ZIO.fromOption(Validation.validateTuple2((cardNumber, amount))).mapError(_ => InvalidInputParams("Invalid Card Number/Amount"))
+      updatedCard <- cardServices.updateBalance(tuple._2, tuple._1)
+      _ <- putStrLn(s"Your Updated Balance is ${updatedCard.balance}")
     } yield ()
 
-  def processBusJourneyOption(implicit M: Monad[CardTask]): CardTask[Unit] =
+  def processBusJourneyOption: CardTask[Unit] =
     for {
       stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
       card <- readData("Please Enter Card Number")
-      _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
-        cardServices.createJourney(Barrier(input._3, BusJourney, input._2), input._1).flatMap(x =>
-        {
-          x match {
-            case Right(crossedBarrier) => putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
-            case Left(error) => putStrLn(s"Unable To Create Journey error: $error")
-          }
-        }
-        )
-      })
+      tuple <-  ZIO.fromOption(Validation.validateTuple3((stationCode, direction, card))).mapError(_ => InvalidInputParams("Invalid inputs"))
+      crossedBarrier <- cardServices.createJourney(Barrier(tuple._3, BusJourney, tuple._2), tuple._1)
+      _ <-  putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
     } yield ()
 
-  def processTubeJourneyOption(implicit M: Monad[CardTask]): CardTask[Unit] =
+  def processTubeJourneyOption: CardTask[Unit] =
     for {
       stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
       card <- readData("Please Enter Card Number")
-      _ <- Validation.validateTuple3((stationCode, direction, card)).fold(putStrLn("Invalid Inputs"))(input => {
-        cardServices.createJourney(Barrier(input._3, TubeJourney, input._2), input._1).flatMap[Console, Throwable, Unit](x => {
-          x match {
-            case Right(crossedBarrier) => putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
-            case Left(error) => putStrLn(s"Unable To Create Journey error: $error")
-          }
-        })
-      })
+      tuple <-  ZIO.fromOption(Validation.validateTuple3((stationCode, direction, card))).mapError(_ => InvalidInputParams("Invalid inputs"))
+      crossedBarrier <- cardServices.createJourney(Barrier(tuple._3, TubeJourney, tuple._2), tuple._1)
+      _ <-  putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
     } yield ()
 
 
-  def loop(implicit M: Monad[CardTask]): CardTask[Unit] =
+  def loop: CardTask[Unit] =
     for {
       selectedOption <- readData(inputs)
-      resp <- Validation.validateLong(selectedOption).fold({
-        loop
-      })(option => {
-        if (option > 0 && option < 6)
-          processOption(option) *> loop
-        else if (option == 6) putStrLn("Exiting Application !!")
-        else putStrLn("Invalid Option Selected. Exiting Application !!")
-      })
+      option <- ZIO.fromOption[Long](Validation.validateLong(selectedOption)).mapError(_ => InvalidOptionSelected)
+      _ <- if(option > 0 && option < 6) processOption(option) *> loop
+           else if(option == 6) putStrLn("Exiting Application!!")
+           else putStrLn("Invalid Option Selected. Exiting Application!!")
     } yield ()
 
 
-  def processOption(option: Long)(implicit M: Monad[CardTask]): CardTask[Unit] = {
+  def processOption(option: Long): CardTask[Unit] = {
     option match {
       case 1 => createCardOption
       case 2 => rechargeCardOption
@@ -118,7 +92,7 @@ Please select Options from below Menu
     }
   }
 
-  private def readData(msg: String): CardTask[String] = putStrLn(msg) *> getStrLn
+  private def readData(msg: String): ZIO[R, Throwable, String] = putStrLn(msg) *> getStrLn
 
   object Validation {
     import cats.implicits._
