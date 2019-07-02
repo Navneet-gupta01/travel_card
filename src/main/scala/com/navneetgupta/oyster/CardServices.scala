@@ -4,37 +4,32 @@ import java.util.Date
 
 import cats.Monad
 import cats.data.EitherT
-import zio.{TaskR, ZIO}
+import zio.{IO, Task, TaskR, ZIO, Task}
 import cats.implicits._
 
 final case class CardServices[R <: CardRepository with ZonesRepository]() extends Serializable {
   import CardServices._
 
-  type CardTask[A] = TaskR[R, A]
+  type CardTask[A] = ZIO[R, ValidationError, A]
 
   def createCard(amount: Option[Double]): CardTask[OysterCard[Long]] = create(amount)
 
-  def updateBalanceService(amountToAdd: Double, cardNumber: Long)(implicit M: Monad[CardTask]): CardTask[Either[ValidationError,OysterCard[Long]]] = {
-    (for {
-      card <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
-        get(cardNumber),
-        CardDoesNotExistError)
-      updatedCard <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
-        update(cardNumber,
-          card.copy(balance = card.balance + amountToAdd)),
-        BalanceUpdateError)
-    } yield updatedCard).value
-  }
+  def updateBalance(amountToAdd: Double, cardNumber: Long): CardTask[OysterCard[Long]] =
+    for {
+      cardOption <- get(cardNumber)
+      card <- ZIO.fromOption(cardOption).mapError(_ => CardDoesNotExistError)
+      updateCard <- update(cardNumber, card.copy(balance = card.balance + amountToAdd))
+      balanceUpdated <- ZIO.fromOption(updateCard).mapError(_ => BalanceUpdateError)
+  } yield balanceUpdated
 
-  def getBalanceService(cardNumber: Long)(
-    implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Double]] =
-    (for {
-      cardBalance <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
-        get(cardNumber),
-        CardDoesNotExistError)
-    } yield cardBalance.balance).value
+  def getBalance(cardNumber: Long): CardTask[Double] =
+    for {
+      card <- get(cardNumber)
+      balance <- ZIO.fromOption(card).mapError(_ => CardDoesNotExistError).map(_.balance)
+    } yield balance
 
-  def createJourneyService(barrier: Barrier, cardNumber: Long)(implicit M: Monad[CardTask]) = {
+  def createJourney(barrier: Barrier, cardNumber: Long)(implicit M: Monad[CardTask]) =
+    {
     (for {
       card <- EitherT.fromOptionF[CardTask, ValidationError, OysterCard[Long]](
         get(cardNumber),
@@ -74,62 +69,55 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
       }
     } yield updatedBarrierWithFare
 
-  private def minBalanceValidation[A](barrier: Barrier, card: OysterCard[A])(
-    implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] = {
+  private def minBalanceValidation[A](barrier: Barrier, card: OysterCard[A]): CardTask[Barrier] = {
     (CardServices.MIN_BALANCE_FOR_CHECK_IN
       .get(barrier.journeyType)
       .filter(_ <= card.balance)
       .fold({
-        Either.left[ValidationError, Barrier](MinBalanceError)
-      })(v => {
-        Right(barrier)
-      }))
-      .pure[CardTask]
+        TaskR.effect(MinBalanceError)
+      })(v => IO.succeedLazy(barrier)))
   }
-
-  // If User is trying to continuously IN multiple time, he should not be charger again.
-  private def isContinuousCheckIN(lastCheckIn: Date, currentCheckIN: Date): Boolean = {
-    (currentCheckIN.getTime - lastCheckIn.getTime) < 5000
-  }
-
 
   private def processTubeJourney[A](
                                   barrier: Barrier,
-                                  card: OysterCard[A])(implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] = {
+                                  card: OysterCard[A]): CardTask[Barrier] = {
     card.lastBarrier.fold(
       if (barrier.direction == Direction.CHECK_IN)
-        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
-      else Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask])(lastBarrier => {
-      lastBarrier.journeyType match {
+        ZIO.effect[Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE))
+      else
+        ZIO.fail(BarrierNotCheckedIN)
+    )(lastBarrier => {
+      val r = lastBarrier.journeyType match {
         case BusJourney => if (barrier.direction == Direction.CHECK_IN)
-          Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
+          ZIO.succeed(barrier.copy(fare = MAX_TUBE_JOURNEY_FARE))
         else
-          Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask]
+          TaskR.fail(BarrierNotCheckedIN)
         case TubeJourney =>
           (lastBarrier.direction, barrier.direction) match {
             case (Direction.CHECK_OUT, Direction.CHECK_OUT) =>
-              Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[CardTask]
+              TaskR.fail(BarrierNotCheckedIN)
             case (Direction.CHECK_IN, Direction.CHECK_OUT) =>
-              calculateMinTubeFare(barrier, lastBarrier).map(Either.right(_))
+              calculateMinTubeFare(barrier, lastBarrier)
             case _ =>
-              Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[CardTask]
+              ZIO.succeed(barrier.copy(fare = MAX_TUBE_JOURNEY_FARE))
           }
       }
+      r
     })
   }
 
-  private def calculateBusFare[A](barrier: Barrier, card: OysterCard[A])(implicit M: Monad[CardTask]): CardTask[Either[ValidationError, Barrier]] =
+  private def calculateBusFare[A](barrier: Barrier, card: OysterCard[A]): CardTask[Barrier] =
     (barrier.direction, card.lastBarrier) match {
       case (Direction.CHECK_OUT, Some(lastbarrier)) if (lastbarrier.journeyType == BusJourney && lastbarrier.direction == Direction.CHECK_IN) =>
         // already deducted while checkIn donot deduct again
-        Either.right[ValidationError, Barrier](barrier).pure[CardTask]
+        ZIO.succeed(barrier)
       case _ =>
         // In any other case deduct the fare.
-        Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_BUS_JOURNEY_FARE)).pure[CardTask]
+        ZIO.succeed(barrier.copy(fare = MAX_BUS_JOURNEY_FARE))
     }
 
-  private def calculateMinTubeFare(to: Barrier, from: Barrier)(implicit M: Monad[CardTask]): CardTask[Barrier] = {
-    for {
+  private def calculateMinTubeFare(to: Barrier, from: Barrier): CardTask[Barrier] = {
+    val r = for {
       fromZones <- getZonesByStationCode(from.stationCode)
       toZones <- getZonesByStationCode(to.stationCode)
     } yield {
@@ -138,6 +126,7 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
       val barrierC = to.copy(fare = minFare - MAX_TUBE_JOURNEY_FARE)
       barrierC
     }
+    r
   }
 
   private def minFareCalc(fromZones: List[Int], toZones: List[Int]): Double = {

@@ -37,7 +37,7 @@ final case class OysterCard[A](number: A, balance: Double, lastBarrier: Option[B
 
 final case class Station(stationCode: String, stationName: String, zones: NonEmptyList[Int])
 
-sealed trait ValidationError extends Product with Serializable
+sealed trait ValidationError extends Exception with Product with Serializable
 
 case object MinBalanceError extends ValidationError
 
