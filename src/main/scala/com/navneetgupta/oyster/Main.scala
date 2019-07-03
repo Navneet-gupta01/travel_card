@@ -1,32 +1,40 @@
 package com.navneetgupta.oyster
 
 import cats.Monad
+import com.navneetgupta.domain.{Common, RandomGenerator}
+import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
 import com.navneetgupta.oyster.CardRepository.InMemoryCardRepository
 import com.navneetgupta.oyster.ZonesRepository.InMemoryZonesRepository
 import zio.clock.Clock
 import zio.{App, IO, Ref, TaskR, ZIO}
 import zio.console._
+import zio._
 
 object Main extends App {
-  type AppEnvironment = Clock with Console with CardRepository with ZonesRepository
+  type AppEnvironment = Console with CardRepository with ZonesRepository
   type CardTask[A] = TaskR[AppEnvironment, A]
+  type CreatedEnv = CardRepository with ZonesRepository
 
-  val env = for {
+  override def run(args: List[String]): ZIO[Main.Environment, Nothing, Int] = (for {
+    _ <- putStrLn("lets try")
     store    <- Ref.make(Map[Long, OysterCard[Long]]())
     counter <- Ref.make(0L)
-    cardRepo = new CardRepository {
-      override def cardRepository: CardRepository.Service[Any] = InMemoryCardRepository(store,counter)
-    }
-    zonesRepo = new ZonesRepository {
-      override val zonesRepository: ZonesRepository.Service[Any] = InMemoryZonesRepository
-    }
-    cardServices = new CardServices
-  } yield cardServices
+    zioAppEnv = ZIO.runtime[AppEnvironment].flatMap{ implicit rts => {
+      val cardServices = new CardServices[AppEnvironment]
+      Programs[AppEnvironment](cardServices).loop
+    }}
+    server <- zioAppEnv.provideSome[Environment](base => {
+      new Console with CardRepository with ZonesRepository {
+        override val console: Console.Service[Any] = base.console
 
-  override def run(args: List[String]): ZIO[Main.Environment, Nothing, Int] = ???
-//    ZIO.runtime[AppEnvironment].flatMap {implicit rts => }
+        override def cardRepository: CardRepository.Service[Any] = InMemoryCardRepository(store, counter)
+
+        override val zonesRepository: ZonesRepository.Service[Any] = InMemoryZonesRepository
+      }
+    })
+  } yield server).foldM(err => putStrLn(s"Execution failed with: ${err}") *> ZIO.succeed(1), _ => ZIO.succeed(0))
+
 }
-
 final case class Programs[R <: Console with CardRepository with ZonesRepository](cardServices: CardServices[R]) {
   val inputs =
     """

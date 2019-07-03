@@ -38,30 +38,30 @@ final case class OysterCard[A](number: A, balance: Double, lastBarrier: Option[B
 final case class Station(stationCode: String, stationName: String, zones: NonEmptyList[Int])
 
 sealed trait ValidationError extends Exception with Product with Serializable {
-  def msg: String
+  val detailMessage: String
 }
 
 case object MinBalanceError extends ValidationError {
-  override def msg: String = "Amount Insufficient"
+  override val detailMessage: String = "Amount Insufficient"
 }
 
 case object CardDoesNotExistError extends ValidationError{
-  override def msg: String = "Invalid Card Number"
+  override val detailMessage: String = "Invalid Card Number"
 }
 
 case object BalanceUpdateError extends ValidationError{
-  override def msg: String = "Error While Updating Balance"
+  override val detailMessage: String = "Error While Updating Balance"
 }
 
 case object CreateJourneyError extends ValidationError{
-  override def msg: String = "Error While Creating Journey"
+  override val detailMessage: String = "Error While Creating Journey"
 }
 
 case object BarrierNotCheckedIN extends ValidationError{
-  override def msg: String = "Barrier Not Checked IN"
+  override val detailMessage: String = "Barrier Not Checked IN"
 }
 case object InvalidOptionSelected extends ValidationError{
-  override def msg: String = "Invalid Option Selected"
+  override val detailMessage: String = "Invalid Option Selected"
 }
 
-case class InvalidInputParams(msg: String) extends ValidationError
+case class InvalidInputParams(detailMessage: String) extends ValidationError
