@@ -3,20 +3,20 @@ package com.navneetgupta.oyster
 import zio.{Ref, UIO, ZIO}
 
 trait CardRepository extends Serializable {
-  def cardRepository[A]: CardRepository.Service[Any, A]
+  def cardRepository: CardRepository.Service[Any]
 }
 
 object CardRepository extends Serializable {
 
-  trait Service[R, A] extends Serializable {
-    def get(cardNumber: A): ZIO[R, Nothing, Option[OysterCard[A]]]
+  trait Service[R] extends Serializable {
+    def get(cardNumber: Long): ZIO[R, Nothing, Option[OysterCard[Long]]]
 
-    def create(amount: Option[Double]): ZIO[R, Nothing, OysterCard[A]]
+    def create(amount: Option[Double]): ZIO[R, Nothing, OysterCard[Long]]
 
-    def update(cardNumber: A, card: OysterCard[A]): ZIO[R, Nothing, Option[OysterCard[A]]]
+    def update(cardNumber: Long, card: OysterCard[Long]): ZIO[R, Nothing, Option[OysterCard[Long]]]
   }
 
-  final case class InMemoryCardRepository(ref: Ref[Map[Long, OysterCard[Long]]], counter: Ref[Long]) extends Service[Any, Long] {
+  final case class InMemoryCardRepository(ref: Ref[Map[Long, OysterCard[Long]]], counter: Ref[Long]) extends Service[Any] {
     override def get(cardNumber: Long): ZIO[Any, Nothing, Option[OysterCard[Long]]] = ref.get.map(_.get(cardNumber))
 
     override def create(amount: Option[Double]): ZIO[Any, Nothing, OysterCard[Long]] =

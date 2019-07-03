@@ -1,18 +1,33 @@
 package com.navneetgupta.oyster
 
 import cats.Monad
+import com.navneetgupta.oyster.CardRepository.InMemoryCardRepository
+import com.navneetgupta.oyster.ZonesRepository.InMemoryZonesRepository
 import zio.clock.Clock
-import zio.{App, TaskR, ZIO, IO}
+import zio.{App, IO, Ref, TaskR, ZIO}
 import zio.console._
 
 object Main extends App {
   type AppEnvironment = Clock with Console with CardRepository with ZonesRepository
   type CardTask[A] = TaskR[AppEnvironment, A]
 
+  val env = for {
+    store    <- Ref.make(Map[Long, OysterCard[Long]]())
+    counter <- Ref.make(0L)
+    cardRepo = new CardRepository {
+      override def cardRepository: CardRepository.Service[Any] = InMemoryCardRepository(store,counter)
+    }
+    zonesRepo = new ZonesRepository {
+      override val zonesRepository: ZonesRepository.Service[Any] = InMemoryZonesRepository
+    }
+    cardServices = new CardServices
+  } yield cardServices
+
   override def run(args: List[String]): ZIO[Main.Environment, Nothing, Int] = ???
+//    ZIO.runtime[AppEnvironment].flatMap {implicit rts => }
 }
 
-final case class Program[R <: Console with CardRepository with ZonesRepository](cardServices: CardServices[R]) {
+final case class Programs[R <: Console with CardRepository with ZonesRepository](cardServices: CardServices[R]) {
   val inputs =
     """
 Please select Options from below Menu
@@ -111,4 +126,8 @@ Please select Options from below Menu
     def validateTuple3(tuple: (String, String, String)): Option[(Long, Direction.Value, String)] =
       (scala.util.Try(tuple._3.toLong).toOption, getDirection(tuple._2)).bisequence.map(a => (a._1, a._2, tuple._1))
   }
+}
+
+object Programs {
+  def apply[R <: Console with CardRepository with ZonesRepository](cardServices: CardServices[R]): Programs[R] = new Programs[R](cardServices)
 }
