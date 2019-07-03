@@ -8,8 +8,8 @@ import cats.data.EitherT
 import cats.implicits._
 import CardServices._
 
-class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
-                                          zonesRepository: ZonesRepository[F]) {
+class CardServices[F[_] : RandomGenerator](cardsRepository: CardsRepository[F],
+                                           zonesRepository: ZonesRepository[F]) {
 
 
   def createCard(amount: Option[Double]) = cardsRepository.createCard(amount)
@@ -35,14 +35,13 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
         CardDoesNotExistError)
     } yield cardBalance).value
 
-  def createJourney(barrier: Barrier, cardNumber: Long)(implicit M: Monad[F]) =
-  {
+  def createJourney(barrier: Barrier, cardNumber: Long)(implicit M: Monad[F]) = {
     (for {
       card <- EitherT.fromOptionF[F, ValidationError, OysterCard](
         cardsRepository.getCard(cardNumber),
         CardDoesNotExistError)
       crossedBarrier <- barrier.journeyType match {
-        case BusJourney  => busJourney(barrier, card)
+        case BusJourney => busJourney(barrier, card)
         case TubeJourney => tubeJourney(barrier, card)
       }
       _ <- EitherT.fromOptionF[F, ValidationError, OysterCard](
@@ -57,15 +56,23 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
   private def tubeJourney(barrier: Barrier, card: OysterCard)(
     implicit M: Monad[F]): EitherT[F, ValidationError, Barrier] =
     for {
-      minBalanceValidation        <- EitherT{minBalanceValidation(barrier, card)}
-      updatedBarrierWihtFare      <- EitherT{processTubeJourney(minBalanceValidation, card)}
+      minBalanceValidation <- EitherT {
+        minBalanceValidation(barrier, card)
+      }
+      updatedBarrierWihtFare <- EitherT {
+        processTubeJourney(minBalanceValidation, card)
+      }
     } yield updatedBarrierWihtFare
 
   private def busJourney(barrier: Barrier, card: OysterCard)(
     implicit M: Monad[F]): EitherT[F, ValidationError, Barrier] =
     for {
-      minBalanceValidation    <- EitherT {minBalanceValidation(barrier, card)}
-      updatedBarrierWithFare  <- EitherT{calculateBusFare(minBalanceValidation, card)}
+      minBalanceValidation <- EitherT {
+        minBalanceValidation(barrier, card)
+      }
+      updatedBarrierWithFare <- EitherT {
+        calculateBusFare(minBalanceValidation, card)
+      }
     } yield updatedBarrierWithFare
 
   private def minBalanceValidation(barrier: Barrier, card: OysterCard)(
@@ -74,14 +81,16 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
       .get(barrier.journeyType)
       .filter(_ <= card.balance)
       .fold({
-        Either.left[ValidationError, Barrier](MinBalanceError)})(v => {
-        Right(barrier)}))
+        Either.left[ValidationError, Barrier](MinBalanceError)
+      })(v => {
+        Right(barrier)
+      }))
       .pure[F]
   }
 
   // If User is trying to continuously IN multiple time, he should not be charger again.
   private def isContinuousCheckIN(lastCheckIn: Date, currentCheckIN: Date): Boolean = {
-    (currentCheckIN.getTime-lastCheckIn.getTime) < 5000
+    (currentCheckIN.getTime - lastCheckIn.getTime) < 5000
   }
 
 
@@ -89,11 +98,11 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
                                   barrier: Barrier,
                                   card: OysterCard)(implicit M: Monad[F]): F[Either[ValidationError, Barrier]] = {
     card.lastBarrier.fold(
-      if(barrier.direction == Direction.CHECK_IN)
+      if (barrier.direction == Direction.CHECK_IN)
         Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[F]
       else Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[F])(lastBarrier => {
       lastBarrier.journeyType match {
-        case BusJourney =>  if(barrier.direction == Direction.CHECK_IN)
+        case BusJourney => if (barrier.direction == Direction.CHECK_IN)
           Either.right[ValidationError, Barrier](barrier.copy(fare = MAX_TUBE_JOURNEY_FARE)).pure[F]
         else
           Either.left[ValidationError, Barrier](BarrierNotCheckedIN).pure[F]
@@ -110,7 +119,7 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
     })
   }
 
-  private def calculateBusFare(barrier: Barrier, card: OysterCard)(implicit M: Monad[F]): F[Either[ValidationError,Barrier]] =
+  private def calculateBusFare(barrier: Barrier, card: OysterCard)(implicit M: Monad[F]): F[Either[ValidationError, Barrier]] =
     (barrier.direction, card.lastBarrier) match {
       case (Direction.CHECK_OUT, Some(lastbarrier)) if (lastbarrier.journeyType == BusJourney && lastbarrier.direction == Direction.CHECK_IN) =>
         // already deducted while checkIn donot deduct again
@@ -126,7 +135,7 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
       toZones <- zonesRepository.getZonesByStationCode(to.stationCode)
     } yield {
       // refund the excess fare charged
-      val minFare = minFareCalc(fromZones,toZones)
+      val minFare = minFareCalc(fromZones, toZones)
       val barrierC = to.copy(fare = minFare - MAX_TUBE_JOURNEY_FARE)
       barrierC
     }
@@ -140,7 +149,7 @@ class CardServices[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
       }))
   }
 
-  private def calculateTubeFare(crossedZones: List[Int], minNumberOfZonesCrossed: Long) : Double = {
+  private def calculateTubeFare(crossedZones: List[Int], minNumberOfZonesCrossed: Long): Double = {
     val cost = (crossedZones.contains(1), minNumberOfZonesCrossed) match {
       case (true, 1) => 2.5D
       case (true, 2) => 3.0D
@@ -158,6 +167,6 @@ object CardServices {
   val MIN_BALANCE_FOR_CHECK_IN = Map(BusJourney -> MAX_BUS_JOURNEY_FARE, TubeJourney -> MAX_TUBE_JOURNEY_FARE)
 
 
-  def apply[F[_]: RandomGenerator](cardsRepository: CardsRepository[F],
-                                   zonesRepository: ZonesRepository[F]): CardServices[F] = new CardServices(cardsRepository, zonesRepository)
+  def apply[F[_] : RandomGenerator](cardsRepository: CardsRepository[F],
+                                    zonesRepository: ZonesRepository[F]): CardServices[F] = new CardServices(cardsRepository, zonesRepository)
 }

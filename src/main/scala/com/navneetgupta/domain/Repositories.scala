@@ -6,6 +6,8 @@ trait ZonesRepository[F[_]] {
 
 trait CardsRepository[F[_]] {
   def createCard(amount: Option[Double]): F[OysterCard]
+
   def getCard(cardNumber: Long): F[Option[OysterCard]]
+
   def updateCard(card: OysterCard): F[Option[OysterCard]]
 }
