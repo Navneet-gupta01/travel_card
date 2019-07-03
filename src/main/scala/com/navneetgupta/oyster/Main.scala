@@ -1,14 +1,10 @@
 package com.navneetgupta.oyster
 
-import cats.Monad
-import com.navneetgupta.domain.{Common, RandomGenerator}
-import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
+
 import com.navneetgupta.oyster.CardRepository.InMemoryCardRepository
 import com.navneetgupta.oyster.ZonesRepository.InMemoryZonesRepository
-import zio.clock.Clock
-import zio.{App, IO, Ref, TaskR, ZIO}
+import zio.{App, Ref, TaskR, ZIO}
 import zio.console._
-import zio._
 
 object Main extends App {
   type AppEnvironment = Console with CardRepository with ZonesRepository
@@ -16,7 +12,7 @@ object Main extends App {
   type CreatedEnv = CardRepository with ZonesRepository
 
   override def run(args: List[String]): ZIO[Main.Environment, Nothing, Int] = (for {
-    _ <- putStrLn("lets try")
+    _ <- putStrLn("Starting Application")
     store    <- Ref.make(Map[Long, OysterCard[Long]]())
     counter <- Ref.make(0L)
     zioAppEnv = ZIO.runtime[AppEnvironment].flatMap{ implicit rts => {
@@ -47,9 +43,9 @@ Please select Options from below Menu
   [6] Exit
     """.stripMargin
 
-  type CardTask[A] = TaskR[R, A]
+  type CardTask[A] = ZIO[R,ValidationError, A]
 
-  def createCardOption: CardTask[Unit] = for {
+  def createCardOption = for {
     amount <- readData("Please enter the amount default[0]")
     amountValidate <- ZIO.succeed(Validation.validateDouble(amount))
     card <- cardServices.createCard(amountValidate)
@@ -57,7 +53,7 @@ Please select Options from below Menu
   } yield ()
 
 
-  def getBalanceOption: CardTask[Unit] =
+  def getBalanceOption =
     for {
       cardNumber <- readData("Please enter the card Number")
       cardNumberValidated <- ZIO.fromOption(Validation.validateLong(cardNumber)).mapError(_ => InvalidInputParams("Invalid Card Number"))
@@ -65,7 +61,7 @@ Please select Options from below Menu
       _ <- putStrLn(s"Your Card Balance is $balance")
     } yield ()
 
-  def rechargeCardOption: CardTask[Unit] =
+  def rechargeCardOption =
     for {
       cardNumber <- readData("Please enter the card Number")
       amount <- readData("Please Enter amount to rcharge the card")
@@ -74,7 +70,7 @@ Please select Options from below Menu
       _ <- putStrLn(s"Your Updated Balance is ${updatedCard.balance}")
     } yield ()
 
-  def processBusJourneyOption: CardTask[Unit] =
+  def processBusJourneyOption =
     for {
       stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
@@ -84,7 +80,7 @@ Please select Options from below Menu
       _ <-  putStrLn(s"You are allowed to cross through: ${crossedBarrier}")
     } yield ()
 
-  def processTubeJourneyOption: CardTask[Unit] =
+  def processTubeJourneyOption =
     for {
       stationCode <- readData("Please Enter the stationCode")
       direction <- readData("Please Enter the Direction For Inward Journey(IN)/ for OutWard Journey(OUT)")
@@ -99,9 +95,9 @@ Please select Options from below Menu
     for {
       selectedOption <- readData(inputs)
       option <- ZIO.fromOption[Long](Validation.validateLong(selectedOption)).mapError(_ => InvalidOptionSelected)
-      _ <- if(option > 0 && option < 6) processOption(option) *> loop
-           else if(option == 6) putStrLn("Exiting Application!!")
-           else putStrLn("Invalid Option Selected. Exiting Application!!")
+      _ <- if(option > 0 && option < 6) processOption(option).catchAll(err => putStrLn(s"${err.detailMessage}")) *> loop
+      else if(option == 6) putStrLn("Exiting Application!!")
+      else putStrLn("Invalid Option Selected. Exiting Application!!")
     } yield ()
 
 
@@ -115,7 +111,7 @@ Please select Options from below Menu
     }
   }
 
-  private def readData(msg: String): ZIO[R, Throwable, String] = putStrLn(msg) *> getStrLn
+  private def readData(msg: String): ZIO[R, ValidationError, String] = putStrLn(msg) *> getStrLn.mapError(_ => InvalidInputParams(msg))
 
   object Validation {
     import cats.implicits._
