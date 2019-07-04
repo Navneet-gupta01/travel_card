@@ -25,7 +25,6 @@ object Barrier {
     Barrier(stationCode, journeyType, direction, new Date(), 0.0)
 }
 
-//case class Journey(from: Barrier, to: Option[Barrier], date: Date, cost: Double)
 final case class OysterCard[A](number: A, balance: Double, lastBarrier: Option[Barrier] = None) {
   def update(card: OysterCard[A]): OysterCard[A] =
     this.copy(

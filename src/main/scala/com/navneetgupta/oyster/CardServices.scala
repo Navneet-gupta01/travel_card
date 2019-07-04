@@ -2,11 +2,8 @@ package com.navneetgupta.oyster
 
 import java.util.Date
 
-import cats.Monad
-import cats.data.EitherT
-import zio.{IO, Task, TaskR, ZIO}
+import zio.{TaskR, ZIO}
 import cats.implicits._
-import shapeless.ops.nat.Min
 
 final case class CardServices[R <: CardRepository with ZonesRepository]() extends Serializable {
   import CardServices._
