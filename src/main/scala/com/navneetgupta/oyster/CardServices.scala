@@ -27,8 +27,7 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
     } yield balance
 
   def createJourney(barrier: Barrier, cardNumber: Long): CardTask[Barrier] =
-    {
-    (for {
+    for {
       cardOption <- get(cardNumber)
       card <- ZIO.fromOption(cardOption).mapError(_ => CardDoesNotExistError)
       crossedBarrier <- barrier.journeyType match {
@@ -41,8 +40,8 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
         ))
       _ <- ZIO.fromOption(updateCard).mapError(_ => CreateJourneyError)
 
-    } yield crossedBarrier)
-  }
+    } yield crossedBarrier
+
 
   private def tubeJourney[A](barrier: Barrier, card: OysterCard[A]): CardTask[Barrier] =
     for {
@@ -130,7 +129,6 @@ final case class CardServices[R <: CardRepository with ZonesRepository]() extend
     }
     cost
   }
-
 }
 
 object CardServices {
