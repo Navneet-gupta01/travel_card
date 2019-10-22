@@ -3,7 +3,7 @@ package com.navneetgupta
 import java.util.Date
 
 import cats.Monad
-import com.navneetgupta.domain.{Common, Programs, RandomGenerator}
+import com.navneetgupta.oyster_tagless.{Common, Programs, RandomGenerator}
 import org.scalatest.{FunSpecLike, Matchers}
 import sun.security.provider.Sun
 

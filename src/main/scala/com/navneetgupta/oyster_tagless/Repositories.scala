@@ -1,4 +1,4 @@
-package com.navneetgupta.domain
+package com.navneetgupta.oyster_tagless
 
 trait ZonesRepository[F[_]] {
   def getZonesByStationCode(stationCode: String): F[List[Int]]

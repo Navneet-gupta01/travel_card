@@ -1,7 +1,7 @@
 package com.navneetgupta
 import zio.ZIO
 
-package object oyster extends CardRepository.Service[CardRepository] with ZonesRepository.Service[ZonesRepository] {
+package object oyster_module_pattern extends CardRepository.Service[CardRepository] with ZonesRepository.Service[ZonesRepository] {
   override def get(cardNumber: Long): ZIO[CardRepository, Nothing, Option[OysterCard[Long]]] =
     ZIO.accessM(_.cardRepository.get(cardNumber))
 

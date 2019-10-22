@@ -3,7 +3,7 @@ package com.navneetgupta.infra
 import cats.Applicative
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.navneetgupta.domain.{Station, ZonesRepository}
+import com.navneetgupta.oyster_tagless.{Station, ZonesRepository}
 
 
 class InMemoryZonesRepositoryInterpreter[F[_] : Applicative] extends ZonesRepository[F] {

@@ -1,6 +1,6 @@
 package com.navneetgupta
 
-import com.navneetgupta.domain._
+import com.navneetgupta.oyster_tagless._
 import org.scalatest.{Matchers, Outcome, fixture}
 import zio.{DefaultRuntime, IO}
 import zio.interop.catz._
@@ -91,7 +91,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val getBalance = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(1.8D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", BusJourney, Direction.CHECK_IN), card.number)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", BusJourney, Direction.CHECK_IN), card.number)
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
@@ -102,7 +102,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val createJourney = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(3.0D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", BusJourney, Direction.CHECK_IN), 233)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", BusJourney, Direction.CHECK_IN), 233)
       } yield journey
 
       runtime.unsafeRun(createJourney) shouldBe Left(CardDoesNotExistError)
@@ -112,7 +112,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val createJourney = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(1.5D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", BusJourney, Direction.CHECK_IN), card.number)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", BusJourney, Direction.CHECK_IN), card.number)
       } yield journey
 
       runtime.unsafeRun(createJourney) shouldBe Left(MinBalanceError)
@@ -122,7 +122,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val getBalance = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(3.2D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
@@ -133,7 +133,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val createJourney = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(3.2D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), 233)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", TubeJourney, Direction.CHECK_IN), 233)
       } yield journey
 
       runtime.unsafeRun(createJourney) shouldBe Left(CardDoesNotExistError)
@@ -143,7 +143,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val createJourney = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(1.5D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
       } yield journey
 
       runtime.unsafeRun(createJourney) shouldBe Left(MinBalanceError)
@@ -153,7 +153,7 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val getBalance = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(30.0D, card.number)
-        journey <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
+        journey <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number)
         balance <- fixture.cardServices.getBalance(card.number)
       } yield balance
 
@@ -174,19 +174,19 @@ class CardServiceSpec extends TestSetup with fixture.FunSpecLike with Matchers {
       val completedJourney = for {
         card <- fixture.cardServices.createCard(None)
         addBalance <- fixture.cardServices.updateBalance(30.0D, card.number)
-        _ <- fixture.cardServices.createJourney(domain.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number) // 3.2
+        _ <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HOL", TubeJourney, Direction.CHECK_IN), card.number) // 3.2
         balance1 <- fixture.cardServices.getBalance(card.number)
         print = println(s"balance after HOL IN $balance1")
-        _ <- fixture.cardServices.createJourney(domain.Barrier("EAR", TubeJourney, Direction.CHECK_OUT), card.number) //
+        _ <- fixture.cardServices.createJourney(oyster_tagless.Barrier("EAR", TubeJourney, Direction.CHECK_OUT), card.number) //
         balance2 <- fixture.cardServices.getBalance(card.number)
         print = println(s"balance after EAR OUT $balance2")
-        _ <- fixture.cardServices.createJourney(domain.Barrier("EAR", BusJourney, Direction.CHECK_IN), card.number)
+        _ <- fixture.cardServices.createJourney(oyster_tagless.Barrier("EAR", BusJourney, Direction.CHECK_IN), card.number)
         balance3 <- fixture.cardServices.getBalance(card.number)
         print = println(s"balance after BUS OUT $balance3")
-        _ <- fixture.cardServices.createJourney(domain.Barrier("EAR", TubeJourney, Direction.CHECK_IN), card.number)
+        _ <- fixture.cardServices.createJourney(oyster_tagless.Barrier("EAR", TubeJourney, Direction.CHECK_IN), card.number)
         balance4 <- fixture.cardServices.getBalance(card.number)
         print = println(s"balance after EAR IN $balance4")
-        _ <- fixture.cardServices.createJourney(domain.Barrier("HAM", TubeJourney, Direction.CHECK_OUT), card.number)
+        _ <- fixture.cardServices.createJourney(oyster_tagless.Barrier("HAM", TubeJourney, Direction.CHECK_OUT), card.number)
         balance5 <- fixture.cardServices.getBalance(card.number)
         print = println(s"balance after HAM OUT $balance5")
         balance <- fixture.cardServices.getBalance(card.number)

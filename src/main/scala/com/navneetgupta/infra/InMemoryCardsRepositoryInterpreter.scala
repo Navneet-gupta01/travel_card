@@ -1,7 +1,7 @@
 package com.navneetgupta.infra
 
 import cats.Monad
-import com.navneetgupta.domain.{CardsRepository, OysterCard, RandomGenerator}
+import com.navneetgupta.oyster_tagless.{CardsRepository, OysterCard, RandomGenerator}
 import cats.implicits._
 
 import scala.collection.concurrent.TrieMap

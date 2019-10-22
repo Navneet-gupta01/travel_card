@@ -1,7 +1,7 @@
 package com.navneetgupta
 
 import cats.Monad
-import com.navneetgupta.domain._
+import com.navneetgupta.oyster_tagless._
 import com.navneetgupta.infra.{InMemoryCardsRepositoryInterpreter, InMemoryZonesRepositoryInterpreter}
 
 trait TestSetup {

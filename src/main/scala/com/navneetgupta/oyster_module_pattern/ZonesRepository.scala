@@ -1,4 +1,4 @@
-package com.navneetgupta.oyster
+package com.navneetgupta.oyster_module_pattern
 
 import cats.data.NonEmptyList
 import zio.ZIO

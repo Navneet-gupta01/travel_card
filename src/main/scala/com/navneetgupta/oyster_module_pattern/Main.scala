@@ -1,8 +1,8 @@
-package com.navneetgupta.oyster
+package com.navneetgupta.oyster_module_pattern
 
 
-import com.navneetgupta.oyster.CardRepository.InMemoryCardRepository
-import com.navneetgupta.oyster.ZonesRepository.InMemoryZonesRepository
+import com.navneetgupta.oyster_module_pattern.CardRepository.InMemoryCardRepository
+import com.navneetgupta.oyster_module_pattern.ZonesRepository.InMemoryZonesRepository
 import zio.{App, Ref, TaskR, ZIO}
 import zio.console._
 

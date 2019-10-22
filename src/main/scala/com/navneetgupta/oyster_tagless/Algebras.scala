@@ -1,4 +1,4 @@
-package com.navneetgupta.domain
+package com.navneetgupta.oyster_tagless
 
 
 trait RandomGenerator[F[_]] {
